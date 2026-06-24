@@ -263,7 +263,13 @@ void setup() {
 
   WiFi.config(localIP, gateway, subnet, dns);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  WiFi.setAutoReconnect(true);
+  int retries = 0;
+  while (WiFi.status() != WL_CONNECTED && retries < 20) {
+    delay(500);
+    Serial.print(".");
+    retries++;
+  }
   Serial.println();
   Serial.print("ESP32 IP: ");
   Serial.println(WiFi.localIP());
@@ -273,6 +279,12 @@ void setup() {
 }
 
 void loop() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi verloren, versuche Reconnect...");
+    WiFi.reconnect();
+    delay(3000);
+  }
+
   WiFiClient newClient = server.available();
   if (newClient) {
     int slot = findFreeSlot();
