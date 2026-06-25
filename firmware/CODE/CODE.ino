@@ -75,6 +75,7 @@ void setup() {
   WiFi.config(localIP, gateway, subnet, dns);
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);
+  WiFi.setSleep(true);
 
   int retries = 0;
   while (WiFi.status() != WL_CONNECTED && retries < 50) {
