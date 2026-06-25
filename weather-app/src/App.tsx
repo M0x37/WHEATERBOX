@@ -13,8 +13,12 @@ interface TempEntry {
   time: string
 }
 
+const urls = [
+  'http://192.168.178.100/',
+  'http://btq1527kep2zl2dk.myfritz.net/',
+]
+
 const HISTORY_KEY = 'tempbox_history'
-const URL_KEY = 'tempbox_url'
 const MAX_ENTRIES = 200
 
 function loadHistory(): TempEntry[] {
@@ -33,50 +37,48 @@ function saveEntry(entry: TempEntry) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
 }
 
-function loadUrl(): string {
-  return localStorage.getItem(URL_KEY) || 'http://192.168.178.100/'
-}
-
 function App() {
   const [data, setData] = useState<WeatherData | null>(null)
   const [lastUpdate, setLastUpdate] = useState<string | null>(null)
   const [status, setStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
   const [showHistory, setShowHistory] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
   const [history, setHistory] = useState<TempEntry[]>([])
-  const [settingsUrl, setSettingsUrl] = useState(loadUrl())
+  const [activeUrl, setActiveUrl] = useState<string>('')
   const cached = useRef<WeatherData | null>(null)
   const cachedTime = useRef<string | null>(null)
-  const urlRef = useRef(loadUrl())
 
   useEffect(() => {
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | null = null
 
     async function poll() {
-      try {
-        const res = await CapacitorHttp.get({ url: urlRef.current, responseType: 'json', connectTimeout: 5000 })
-        if (cancelled) return
-        const d = res.data as WeatherData
-        if (typeof d?.temp === 'number') {
-          const now = new Date().toLocaleTimeString()
-          cached.current = d
-          cachedTime.current = now
-          setData(d)
-          setLastUpdate(now)
-          setStatus('connected')
-          saveEntry({ temp: d.temp, time: now })
-        }
-      } catch {
-        if (!cancelled) {
-          if (cached.current) {
-            setData(cached.current)
-            setLastUpdate(cachedTime.current)
+      for (const url of urls) {
+        try {
+          const res = await CapacitorHttp.get({ url, responseType: 'json', connectTimeout: 3000 })
+          if (cancelled) return
+          const d = res.data as WeatherData
+          if (typeof d?.temp === 'number') {
+            const now = new Date().toLocaleTimeString()
+            cached.current = d
+            cachedTime.current = now
+            setData(d)
+            setLastUpdate(now)
+            setActiveUrl(url)
+            setStatus('connected')
+            saveEntry({ temp: d.temp, time: now })
+            return
           }
-          setStatus('disconnected')
+        } catch {
+          // try next url
         }
       }
-      if (!cancelled) timer = setTimeout(poll, 5000)
+      if (!cancelled) {
+        if (cached.current) {
+          setData(cached.current)
+          setLastUpdate(cachedTime.current)
+        }
+        setStatus('disconnected')
+      }
     }
 
     poll()
@@ -92,40 +94,6 @@ function App() {
   function openHistory() {
     setHistory(loadHistory().toReversed())
     setShowHistory(true)
-    setShowSettings(false)
-  }
-
-  function openSettings() {
-    setSettingsUrl(loadUrl())
-    setShowSettings(true)
-    setShowHistory(false)
-  }
-
-  function saveSettings() {
-    let url = settingsUrl.trim()
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'http://' + url
-    }
-    if (!url.endsWith('/')) url += '/'
-    localStorage.setItem(URL_KEY, url)
-    urlRef.current = url
-    setShowSettings(false)
-  }
-
-  if (showSettings) {
-    return (
-      <div className="container settings-view">
-        <div className="settings-header">
-          <button className="btn" onClick={() => setShowSettings(false)}>← Back</button>
-          <span className="settings-title">Settings</span>
-        </div>
-        <div className="settings-body">
-          <div className="settings-label">ESP32 URL</div>
-          <input className="settings-input" value={settingsUrl} onChange={e => setSettingsUrl(e.target.value)} />
-          <button className="btn settings-save" onClick={saveSettings}>SAVE</button>
-        </div>
-      </div>
-    )
   }
 
   if (showHistory) {
@@ -171,10 +139,10 @@ function App() {
               {sleeping ? 'last update' : 'updated'} <span>{lastUpdate}</span>
             </div>
           )}
-          <div className="buttons">
-            <button className="btn" onClick={openSettings}>SETTINGS</button>
-            <button className="btn" onClick={openHistory}>HISTORY</button>
+          <div className="source">
+            {activeUrl.includes('myfritz') ? 'via internet' : 'local'}
           </div>
+          <button className="btn history-btn" onClick={openHistory}>HISTORY</button>
         </>
       ) : (
         <div className="waiting">connecting...</div>

@@ -96,6 +96,14 @@
   margin-top: 24px;
 }
 
+.source {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 .history-view {
   justify-content: flex-start;
   padding-top: 16px;
