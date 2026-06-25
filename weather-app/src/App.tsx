@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CapacitorHttp } from '@capacitor/core'
 import './App.css'
 
@@ -12,6 +12,8 @@ function App() {
   const [data, setData] = useState<WeatherData | null>(null)
   const [lastUpdate, setLastUpdate] = useState<string | null>(null)
   const [status, setStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
+  const cached = useRef<WeatherData | null>(null)
+  const cachedTime = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -23,12 +25,20 @@ function App() {
         if (cancelled) return
         const d = res.data as WeatherData
         if (typeof d?.temp === 'number') {
+          cached.current = d
+          cachedTime.current = new Date().toLocaleTimeString()
           setData(d)
-          setLastUpdate(new Date().toLocaleTimeString())
+          setLastUpdate(cachedTime.current)
           setStatus('connected')
         }
       } catch {
-        if (!cancelled) setStatus('disconnected')
+        if (!cancelled) {
+          if (cached.current) {
+            setData(cached.current)
+            setLastUpdate(cachedTime.current)
+          }
+          setStatus('disconnected')
+        }
       }
       if (!cancelled) timer = setTimeout(poll, 5000)
     }
@@ -41,11 +51,13 @@ function App() {
     }
   }, [])
 
+  const sleeping = status === 'disconnected' && data
+
   return (
     <div className="container">
       {data ? (
         <>
-          <div className="temp">
+          <div className={sleeping ? 'temp dim' : 'temp'}>
             {data.temp.toFixed(1)}
             <span className="temp-unit">°C</span>
           </div>
@@ -60,8 +72,8 @@ function App() {
             </div>
           </div>
           {lastUpdate && (
-            <div className="meta">
-              updated <span>{lastUpdate}</span>
+            <div className={sleeping ? 'meta asleep' : 'meta'}>
+              {sleeping ? 'last update' : 'updated'} <span>{lastUpdate}</span>
             </div>
           )}
         </>

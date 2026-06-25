@@ -59,6 +59,18 @@
   color: #888;
 }
 
+.temp.dim {
+  color: #555;
+}
+
+.meta.asleep {
+  color: #444;
+}
+
+.meta.asleep span {
+  color: #666;
+}
+
 .waiting {
   color: #555;
   font-size: 16px;
