@@ -72,6 +72,8 @@ void setup() {
   if (!aht.begin()) Serial.println("AHT20 Fehler");
   if (!bmp.begin(0x77)) Serial.println("BMP280 Fehler");
 
+  setCpuFrequencyMhz(80);
+
   WiFi.config(localIP, gateway, subnet, dns);
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);
