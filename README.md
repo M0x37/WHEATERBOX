@@ -73,7 +73,7 @@ Response:
 
 The endpoint includes `Access-Control-Allow-Origin: *` for cross-origin requests.
 
-WebSocket is also supported at `ws://192.168.178.100/` for real-time updates (broadcast every 60s).
+**Note:** The ESP32 enters deep sleep between measurements (every 30 min). During sleep the endpoint is unreachable and the app shows "ESP32 not found" – data updates when the ESP32 wakes up.
 
 ## Hardware
 

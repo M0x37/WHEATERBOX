@@ -13,13 +13,20 @@ ESP32-C3 firmware for the TEMPBOX temperature station.
 3. Copy `config.example.h` to `config.h` and set your WiFi credentials.
 4. Open `CODE.ino` and upload to the ESP32-C3.
 
+## Power Saving (Deep Sleep)
+
+The ESP32 wakes every **30 minutes**, serves HTTP requests for ~10 seconds, then enters deep sleep. During sleep, consumption drops to ~5 µA (LEDs off, WiFi disconnected).
+
+With a 2000 mAh battery: ~240 days runtime.
+
 ## API
 
-The server listens on port 80 and provides:
+The server listens on port 80 while awake:
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET /` | HTTP | Returns `{"temp": 23.5, "humidity": 45.2, "pressure": 1013.2}` |
-| `WebSocket /` | WS | Receives JSON updates broadcast every 60 seconds |
 
-CORS is enabled (`Access-Control-Allow-Origin: *`) for cross-origin browser access.
+CORS is enabled (`Access-Control-Allow-Origin: *`) for cross-origin requests.
+
+The app will show "ESP32 not found" during sleep – data updates every 30 minutes.

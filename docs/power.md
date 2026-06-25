@@ -20,7 +20,7 @@
 ## From Battery (2000 mAh Li-Po, 3,7V)
 
 - Continuous: 2000 mAh / 105 mA ≈ **19 hours runtime**
-- With Deep Sleep (wake every 60 s to measure + send): effective ~1–2 mA → **40+ days**
+- With Deep Sleep (wake every 30 min to measure + send): effective ~0,35 mA → **~240 days**
 
 ## Battery voltage
 
