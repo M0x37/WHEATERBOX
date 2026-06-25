@@ -74,6 +74,7 @@ void setup() {
 
   setCpuFrequencyMhz(80);
 
+  WiFi.setHostname("tempbox");
   WiFi.config(localIP, gateway, subnet, dns);
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);

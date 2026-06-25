@@ -14,6 +14,7 @@ interface TempEntry {
 }
 
 const HISTORY_KEY = 'tempbox_history'
+const URL_KEY = 'tempbox_url'
 const MAX_ENTRIES = 200
 
 function loadHistory(): TempEntry[] {
@@ -32,14 +33,21 @@ function saveEntry(entry: TempEntry) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
 }
 
+function loadUrl(): string {
+  return localStorage.getItem(URL_KEY) || 'http://192.168.178.100/'
+}
+
 function App() {
   const [data, setData] = useState<WeatherData | null>(null)
   const [lastUpdate, setLastUpdate] = useState<string | null>(null)
   const [status, setStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
   const [showHistory, setShowHistory] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [history, setHistory] = useState<TempEntry[]>([])
+  const [settingsUrl, setSettingsUrl] = useState(loadUrl())
   const cached = useRef<WeatherData | null>(null)
   const cachedTime = useRef<string | null>(null)
+  const urlRef = useRef(loadUrl())
 
   useEffect(() => {
     let cancelled = false
@@ -47,7 +55,7 @@ function App() {
 
     async function poll() {
       try {
-        const res = await CapacitorHttp.get({ url: 'http://192.168.178.100/', responseType: 'json', connectTimeout: 5000 })
+        const res = await CapacitorHttp.get({ url: urlRef.current, responseType: 'json', connectTimeout: 5000 })
         if (cancelled) return
         const d = res.data as WeatherData
         if (typeof d?.temp === 'number') {
@@ -84,6 +92,40 @@ function App() {
   function openHistory() {
     setHistory(loadHistory().toReversed())
     setShowHistory(true)
+    setShowSettings(false)
+  }
+
+  function openSettings() {
+    setSettingsUrl(loadUrl())
+    setShowSettings(true)
+    setShowHistory(false)
+  }
+
+  function saveSettings() {
+    let url = settingsUrl.trim()
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'http://' + url
+    }
+    if (!url.endsWith('/')) url += '/'
+    localStorage.setItem(URL_KEY, url)
+    urlRef.current = url
+    setShowSettings(false)
+  }
+
+  if (showSettings) {
+    return (
+      <div className="container settings-view">
+        <div className="settings-header">
+          <button className="btn" onClick={() => setShowSettings(false)}>← Back</button>
+          <span className="settings-title">Settings</span>
+        </div>
+        <div className="settings-body">
+          <div className="settings-label">ESP32 URL</div>
+          <input className="settings-input" value={settingsUrl} onChange={e => setSettingsUrl(e.target.value)} />
+          <button className="btn settings-save" onClick={saveSettings}>SAVE</button>
+        </div>
+      </div>
+    )
   }
 
   if (showHistory) {
@@ -129,7 +171,10 @@ function App() {
               {sleeping ? 'last update' : 'updated'} <span>{lastUpdate}</span>
             </div>
           )}
-          <button className="btn history-btn" onClick={openHistory}>HISTORY</button>
+          <div className="buttons">
+            <button className="btn" onClick={openSettings}>SETTINGS</button>
+            <button className="btn" onClick={openHistory}>HISTORY</button>
+          </div>
         </>
       ) : (
         <div className="waiting">connecting...</div>
