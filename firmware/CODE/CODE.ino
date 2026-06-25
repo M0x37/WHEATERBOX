@@ -4,7 +4,6 @@
 #include <Adafruit_AHTX0.h>
 #include <Adafruit_BMP280.h>
 #include "esp_sleep.h"
-#include "esp_task_wdt.h"
 
 const char* ssid = "FRITZ!Box 6490 Cable";
 const char* password = "31741128969952935150";
@@ -21,9 +20,20 @@ WiFiServer server(80);
 
 const int wakeInterval = 30; // min
 
+unsigned long sleepAt = 0;
+bool shouldSleep = false;
+
 void ledsOff() {
   pinMode(2, OUTPUT);
   digitalWrite(2, LOW);
+}
+
+void sleepNow() {
+  Serial.printf("Deep Sleep %d min...\n", wakeInterval);
+  WiFi.disconnect();
+  delay(100);
+  esp_sleep_enable_timer_wakeup((uint64_t)wakeInterval * 60 * 1000000ULL);
+  esp_deep_sleep_start();
 }
 
 String readSensorData() {
@@ -65,6 +75,7 @@ void handleClient(WiFiClient& client) {
   client.stop();
 
   Serial.println("HTTP 200 gesendet");
+  shouldSleep = true;
 }
 
 void setup() {
@@ -93,21 +104,22 @@ void setup() {
   server.begin();
   Serial.println("Server auf Port 80");
 
-  unsigned long start = millis();
-  while (millis() - start < 10000) {
-    WiFiClient client = server.available();
-    if (client) {
-      handleClient(client);
-    }
-    delay(10);
-  }
-
-  Serial.printf("Deep Sleep %d min...\n", wakeInterval);
-  WiFi.disconnect();
-  esp_task_wdt_deinit();
-  delay(100);
-  esp_sleep_enable_timer_wakeup((uint64_t)wakeInterval * 60 * 1000000ULL);
-  esp_deep_sleep_start();
+  sleepAt = millis() + 10000;
 }
 
-void loop() {}
+void loop() {
+  if (shouldSleep) {
+    sleepNow();
+  }
+
+  WiFiClient client = server.available();
+  if (client) {
+    handleClient(client);
+  }
+
+  if (millis() > sleepAt) {
+    sleepNow();
+  }
+
+  delay(10);
+}
