@@ -16,6 +16,7 @@ Adafruit_AHTX0 aht;
 Adafruit_BMP280 bmp;
 
 WiFiServer server(80);
+unsigned long lastWifiCheck = 0;
 
 void ledsOff() {
   pinMode(2, OUTPUT);
@@ -39,6 +40,14 @@ String readSensorData() {
 
 void handleClient(WiFiClient& client) {
   String buffer;
+  unsigned long start = millis();
+  while (client.available() == 0) {
+    if (millis() - start > 2000) {
+      client.stop();
+      return;
+    }
+    delay(1);
+  }
   while (client.available()) {
     char ch = client.read();
     buffer += ch;
@@ -54,13 +63,16 @@ void handleClient(WiFiClient& client) {
   String response = "HTTP/1.1 200 OK\r\n"
     "Content-Type: application/json\r\n"
     "Access-Control-Allow-Origin: *\r\n"
+    "Access-Control-Allow-Methods: GET, OPTIONS\r\n"
+    "Access-Control-Allow-Headers: *\r\n"
+    "Cache-Control: no-cache, no-store, must-revalidate\r\n"
+    "Pragma: no-cache\r\n"
+    "Expires: 0\r\n"
     "Connection: close\r\n"
     "Content-Length: " + String(json.length()) + "\r\n"
     "\r\n" + json;
   client.print(response);
   client.stop();
-
-  Serial.println("HTTP 200 gesendet");
 }
 
 void setup() {
@@ -78,7 +90,7 @@ void setup() {
   WiFi.config(localIP, gateway, subnet, dns);
   WiFi.begin(ssid, password);
   WiFi.setAutoReconnect(true);
-  WiFi.setSleep(true);
+  WiFi.setSleep(false);
 
   int retries = 0;
   while (WiFi.status() != WL_CONNECTED && retries < 50) {
@@ -87,8 +99,12 @@ void setup() {
     retries++;
   }
   Serial.println();
-  Serial.print("ESP32 IP: ");
-  Serial.println(WiFi.localIP());
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("ESP32 IP: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("WiFi fehlgeschlagen – versuche im Loop");
+  }
 
   server.begin();
   Serial.println("Server auf Port 80");
@@ -96,9 +112,12 @@ void setup() {
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi verloren, reconnect...");
-    WiFi.reconnect();
-    delay(3000);
+    if (millis() - lastWifiCheck > 1000) {
+      lastWifiCheck = millis();
+      WiFi.reconnect();
+    }
+    delay(10);
+    return;
   }
 
   WiFiClient client = server.available();
