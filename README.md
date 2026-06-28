@@ -6,14 +6,15 @@ ESP32-C3 temperature station with AHT20 (temperature/humidity) and BMP280 (press
 
 ```
 ├── firmware/          ESP32-C3 Arduino firmware
-│   ├── CODE.ino       Main sketch (WebSocket + HTTP JSON API)
+│   ├── CODE/CODE.ino  Main sketch (HTTP JSON API)
 │   ├── config.example.h   WiFi credentials template
 │   └── config.h       Your local WiFi config (gitignored)
-├── weather-app/       React + Capacitor mobile app
+├── app/               React + Capacitor mobile app
 │   ├── src/           React source code
 │   └── android/       Android native project (generated)
 ├── docs/
 │   ├── wiring.md      Sensor wiring instructions
+│   ├── power.md       Power consumption calculations
 │   └── troubleshooting.md  Common issues & fixes
 └── README.md
 ```
@@ -23,7 +24,7 @@ ESP32-C3 temperature station with AHT20 (temperature/humidity) and BMP280 (press
 ### 1. Flash the ESP32
 
 1. Copy `firmware/config.example.h` to `firmware/config.h` and set your WiFi credentials.
-2. Open `firmware/CODE.ino` in the Arduino IDE (with ESP32 board support installed).
+2. Open `firmware/CODE/CODE.ino` in the Arduino IDE (with ESP32 board support installed).
 3. Select board: **ESP32-C3 Dev Module**.
 4. Install required libraries:
    - ArduinoJson
@@ -34,7 +35,7 @@ ESP32-C3 temperature station with AHT20 (temperature/humidity) and BMP280 (press
 ### 2. Run the Web App (development)
 
 ```bash
-cd weather-app
+cd app
 npm install
 npm run dev
 ```
@@ -44,10 +45,9 @@ Open http://localhost:5173 in your browser.
 ### 3. Build Android APK
 
 ```bash
-cd weather-app
+cd app
 npm run build
 npx cap sync android
-# Open android/ in Android Studio or:
 cd android
 ./gradlew assembleDebug
 ```
@@ -72,8 +72,6 @@ Response:
 ```
 
 The endpoint includes `Access-Control-Allow-Origin: *` for cross-origin requests.
-
-**Note:** The ESP32 enters deep sleep between measurements (every 30 min). During sleep the endpoint is unreachable and the app shows "ESP32 not found" – data updates when the ESP32 wakes up.
 
 ## Hardware
 
