@@ -18,9 +18,27 @@ Adafruit_BMP280 bmp;
 WiFiServer server(80);
 unsigned long lastWifiCheck = 0;
 
-void ledsOff() {
+const int blueLed = 12;
+unsigned long lastBlink = 0;
+bool ledOn = false;
+
+void blinkLed() {
+  if (millis() - lastBlink > 10000 && !ledOn) {
+    digitalWrite(blueLed, HIGH);
+    ledOn = true;
+    lastBlink = millis();
+  }
+  if (ledOn && millis() - lastBlink > 100) {
+    digitalWrite(blueLed, LOW);
+    ledOn = false;
+  }
+}
+
+void pinsInit() {
   pinMode(2, OUTPUT);
   digitalWrite(2, LOW);
+  pinMode(blueLed, OUTPUT);
+  digitalWrite(blueLed, LOW);
 }
 
 String readSensorData() {
@@ -77,7 +95,7 @@ void handleClient(WiFiClient& client) {
 
 void setup() {
   Serial.begin(115200);
-  ledsOff();
+  pinsInit();
 
   Wire.begin(8, 9);
 
@@ -111,6 +129,8 @@ void setup() {
 }
 
 void loop() {
+  blinkLed();
+
   if (WiFi.status() != WL_CONNECTED) {
     if (millis() - lastWifiCheck > 1000) {
       lastWifiCheck = millis();
